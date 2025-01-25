@@ -1,15 +1,17 @@
 import Head from 'next/head'
-import styles from './layout.module.css'
+import styles from '../styles/layout.module.css'
 import utilStyles from '../styles/utils.module.css'
 import Link from 'next/link'
+import profileData from '../config/profileData'
 
-const name = 'Chiaro'
-export const siteTitle = 'Next.js Sample Website'
+const name = profileData.id
+export const siteTitle = 'Chiaro\'s Blog'
 
 export default function Layout({ children, home }) {
   return (
-    <div className={styles.container}>
+    <div className={styles.pageContainer}>
       <Head>
+        <title>{siteTitle}</title>
         <link rel="icon" href="/favicon.ico" />
         <meta
           name="description"
@@ -24,41 +26,48 @@ export default function Layout({ children, home }) {
         <meta name="og:title" content={siteTitle} />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
-      <header className={styles.header}>
-        {home ? (
-          <>
-            <img
-              src="/images/profile.jpg"
-              className={`${styles.headerHomeImage} ${utilStyles.borderCircle}`}
-              alt={name}
-            />
-            <h1 className={utilStyles.heading2Xl}>{name}</h1>
-          </>
-        ) : (
-          <>
-            <Link href="/">
-                <img
-                  src="/images/profile.jpg"
-                  className={`${styles.headerImage} ${utilStyles.borderCircle}`}
-                  alt={name}
-                />
-            </Link>
-            <h2 className={utilStyles.headingLg}>
-              <Link href="/" className={utilStyles.colorInherit}>
-                {name}
-              </Link>
-            </h2>
-          </>
-        )}
-      </header>
-      <main>{children}</main>
-      {!home && (
-        <div className={styles.backToHome}>
-          <Link href="/">
-            ← Back to home
-          </Link>
+
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarProfile}>
+          <img
+            src={profileData.avatar}
+            className={`${styles.profileImage} ${utilStyles.borderCircle}`}
+            alt={name}
+          />
+          <h2 className={styles.profileName}>{name}</h2>
+          <p className={styles.profileBio}>
+            {profileData.bio}
+          </p>
         </div>
-      )}
+        
+        <nav className={styles.sidebarNav}>
+          <ul>
+            <li>
+              <Link href="/" className={styles.navLink}> 
+                首页 
+              </Link>
+            </li>
+            <li>
+              <Link href="/categories" className={styles.navLink}>
+                分类
+              </Link>
+            </li>
+            <li>
+              <Link href="/posts/about" className={styles.navLink}>
+                关于
+              </Link>
+            </li>
+            <li>
+              <Link href="https://github.com/ChiaroShiro/blog-by-Next.js" className={styles.navLink}>
+                项目
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      <main className={styles.mainContent}>
+        {children}
+      </main> 
     </div>
   )
 }
