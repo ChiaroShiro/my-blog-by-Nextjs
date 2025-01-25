@@ -14,11 +14,29 @@
   background-size: cover;
   background-position: center;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
+  opacity: 0.8;
 }
 
 .blogCard:hover {
   transform: translateY(-5px);
+}
+
+.blogCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  background-size: cover;
+  background-position: center;
+  transition: filter 0.3s ease;
+}
+
+.blogCard:hover::before {
+  filter: blur(8px);
 }
 
 .blogContent {
@@ -29,6 +47,7 @@
   padding: 2rem;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
   color: white;
+  z-index: 1;
 }
 
 .blogTitle {
