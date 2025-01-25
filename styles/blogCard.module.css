@@ -1,6 +1,6 @@
 .blogCard {
   position: relative;
-  height: 300px;
+  height: 250px;
   border-radius: 15px;
   overflow: hidden;
   background-size: cover;
@@ -24,18 +24,19 @@
   background: inherit;
   background-size: cover;
   background-position: center;
-  transition: filter 0.3s ease;
+  transition: filter 0.3s ease, transform 0.3s ease;
 }
 
 .blogCard:hover::before {
-  filter: blur(8px);
+  filter: blur(6px);
+  transform: translateY(-5px);
 }
 
 .blogContent {
   position: absolute;
   bottom: 0;
   left: 0;
-  right: 0;
+  right: 0;   
   padding: 2rem;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
   color: white;
@@ -53,9 +54,10 @@
   font-size: 1rem;
   line-height: 1.5;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1; /* 强制只显示一行 */
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-clamp: 1; /* 强制只显示一行 */
 }
 
 .blogDate {
@@ -65,16 +67,16 @@
   opacity: 0.8;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 800px) {
   .blogCard {
-    height: 250px;
+    height: 200px;
   }
   
   .blogTitle {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
   
   .blogExcerpt {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
   }
 }
