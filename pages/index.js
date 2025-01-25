@@ -1,7 +1,6 @@
 import Layout from '../components/layout'
 import { getSortedPostsData } from '../lib/posts'
-import Link from 'next/link'
-import Date from '../components/date'
+import BlogCard from '../components/blogCard'
 import styles from '../styles/Home.module.css'
 
 export default function Home({ allPostsData }) {
@@ -9,17 +8,14 @@ export default function Home({ allPostsData }) {
     <Layout home>
       <section className={styles.blogGrid}>
         {allPostsData.map(({ id, date, title, picadd, shortContent }) => (
-          <Link href={`/posts/${id}`} key={id}>
-            <div className={styles.blogCard} style={{backgroundImage: `url(${picadd})`}}>
-              <div className={styles.blogContent}>
-                <h2 className={styles.blogTitle}>{title}</h2>
-                <p className={styles.blogExcerpt}>{shortContent}...</p>
-                <small className={styles.blogDate}>
-                  <Date dateString={date} />
-                </small>
-              </div>
-            </div>
-          </Link>
+          <BlogCard
+            key={id}
+            id={id}
+            date={date}
+            title={title}
+            picadd={picadd}
+            shortContent={shortContent}
+          />
         ))}
       </section>
     </Layout>

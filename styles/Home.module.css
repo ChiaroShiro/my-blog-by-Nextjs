@@ -6,87 +6,8 @@
   padding: 2rem;
 }
 
-.blogCard {
-  position: relative;
-  height: 300px;
-  border-radius: 15px;
-  overflow: hidden;
-  background-size: cover;
-  background-position: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  opacity: 0.8;
-}
-
-.blogCard:hover {
-  transform: translateY(-5px);
-}
-
-.blogCard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: inherit;
-  background-size: cover;
-  background-position: center;
-  transition: filter 0.3s ease;
-}
-
-.blogCard:hover::before {
-  filter: blur(8px);
-}
-
-.blogContent {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 2rem;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-  color: white;
-  z-index: 1;
-}
-
-.blogTitle {
-  margin: 0 0 1rem;
-  font-size: 1.8rem;
-  font-weight: bold;
-}
-
-.blogExcerpt {
-  margin: 0.5rem 0;
-  font-size: 1rem;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.blogDate {
-  display: block;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
 @media (max-width: 600px) {
   .blogGrid {
     padding: 1rem;
-  }
-  
-  .blogCard {
-    height: 250px;
-  }
-  
-  .blogTitle {
-    font-size: 1.5rem;
-  }
-  
-  .blogExcerpt {
-    font-size: 0.9rem;
   }
 }
