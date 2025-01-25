@@ -3,6 +3,11 @@ import { getAllPostIds, getPostData } from '../../lib/posts'
 import Head from 'next/head'
 import Date from '../../components/date'
 import utilStyles from '../../styles/utils.module.css'
+import postsContentStyles from '../../styles/posts-content.module.css'
+import 'katex/dist/katex.min.css'
+import { InlineMath, BlockMath } from 'react-katex'
+import Highlight from 'react-highlight'
+import 'highlight.js/styles/github.css'
 
 export async function getStaticPaths() {
   const paths = getAllPostIds()
@@ -21,21 +26,23 @@ export default function Post({ postData }) {
         </title>
       </Head>
       <article>
-        <h1 className = {utilStyles.headingXl}>
+        <h1 className={utilStyles.headingXl}>
           {postData.title}
         </h1>
-        <div className = {utilStyles.lightText}>
-          <Date dateString = {postData.date} />
+        <div className={utilStyles.lightText}>
+          <Date dateString={postData.date} />
         </div>
-        <div dangerouslySetInnerHTML = {{ __html: postData.contentHtml }} />
+        <div 
+          dangerouslySetInnerHTML={{ __html: postData.contentHtml }}
+          className={postsContentStyles['markdown-content']}
+        />
       </article>
     </Layout>
   )
 }
 
 export async function getStaticProps({ params }) {
-  // Add the "await" keyword like this:
-  const postData = await getPostData(params.id)
+  const postData = await getPostData(params.id.join('/'))
   return {
     props: {
       postData

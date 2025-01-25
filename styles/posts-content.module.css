@@ -1,0 +1,32 @@
+/* Markdown内容基础样式 */
+.markdown-content {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #24292e;
+  }
+  
+  .markdown-content pre {
+    margin: 1.5em 0;
+    padding: 1em;
+    background: #f6f8fa;
+    border-radius: 5px;
+  }
+  
+  .markdown-content code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    padding: 0.2em 0.4em;
+    background: #f6f8fa;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  
+  .markdown-content p {
+    margin: 1em 0;
+  }
+  
+  .markdown-content blockquote {
+    margin: 1em 0;
+    padding-left: 1em;
+    color: #6a737d;
+    border-left: 0.25em solid #dfe2e5;
+  }
