@@ -4,8 +4,8 @@ import Head from 'next/head'
 import Date from '../../components/date'
 import utilStyles from '../../styles/utils.module.css'
 import postsContentStyles from '../../styles/posts-content.module.css'
-import 'katex/dist/katex.min.css'
-import 'highlight.js/styles/github.css'
+// import 'katex/dist/katex.min.css'
+// import 'highlight.js/styles/github.css'
 
 export async function getStaticPaths() {
   const paths = getAllPostIds()

@@ -1,53 +1,67 @@
-/* 进度条的基本样式 */
+/* 定义的颜色变量 */
+:root {
+  --color1: #FF69B4; /* 粉红色 */
+  --color2: #87CEEB; /* 天蓝色 */
+  --color3: #FFD700; /* 金黄色 */
+  --color4: #98FB98; /* 浅绿色 */
+}
+
+/* NProgress 样式定制 */
+#nprogress {
+  pointer-events: none;
+}
+
 #nprogress .bar {
-  background: #ff3333; /* 鲜艳的红色 */
-  height: 3px;
   position: fixed;
   z-index: 1031;
   top: 0;
-  left: 0;
-  width: 100%;
-  box-shadow: 0 0 10px #ff3333, 0 0 5px #ff3333; /* 添加发光效果 */
+  left: 50%;
+  width: 0;
+  height: 2px;
+  transform-origin: center;
+  animation: colorChange 4s linear infinite, expand 1s ease-in-out infinite;
 }
 
-/* 进度条上的光晕效果 */
-#nprogress .peg {
-  display: block;
-  position: absolute;
-  right: 0px;
-  width: 100px;
-  height: 100%;
-  opacity: 1.0;
-  transform: rotate(3deg) translate(0px, -4px);
-  box-shadow: 0 0 10px #ff3333, 0 0 5px #ff3333;
-}
-
-/* 旋转加载图标样式 */
-#nprogress .spinner {
-  display: block;
-  position: fixed;
-  z-index: 1031;
-  top: 15px;
-  right: 15px;
-}
-
-#nprogress .spinner-icon {
-  width: 18px;
-  height: 18px;
-  box-sizing: border-box;
-  border: solid 2px transparent;
-  border-top-color: #ff3333;
-  border-left-color: #ff3333;
-  border-radius: 50%;
-  animation: nprogress-spinner 400ms linear infinite;
-}
-
-/* 旋转动画 */
-@keyframes nprogress-spinner {
+@keyframes colorChange {
   0% {
-    transform: rotate(0deg);
+    background: var(--color1);
+  }
+  25% {
+    background: var(--color2);
+  }
+  50% {
+    background: var(--color3);
+  }
+  75% {
+    background: var(--color4);
   }
   100% {
-    transform: rotate(360deg);
+    background: var(--color1);
   }
+}
+
+@keyframes expand {
+  0% {
+    width: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  50% {
+    width: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  100% {
+    width: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+#nprogress .peg {
+  display: none;
+}
+
+#nprogress .spinner {
+  display: none;
 }
