@@ -5,8 +5,6 @@ import Date from '../../components/date'
 import utilStyles from '../../styles/utils.module.css'
 import postsContentStyles from '../../styles/posts-content.module.css'
 import 'katex/dist/katex.min.css'
-import { InlineMath, BlockMath } from 'react-katex'
-import Highlight from 'react-highlight'
 import 'highlight.js/styles/github.css'
 
 export async function getStaticPaths() {

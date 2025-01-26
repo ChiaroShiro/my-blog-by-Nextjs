@@ -1,0 +1,53 @@
+/* 进度条的基本样式 */
+#nprogress .bar {
+  background: #ff3333; /* 鲜艳的红色 */
+  height: 3px;
+  position: fixed;
+  z-index: 1031;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-shadow: 0 0 10px #ff3333, 0 0 5px #ff3333; /* 添加发光效果 */
+}
+
+/* 进度条上的光晕效果 */
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  opacity: 1.0;
+  transform: rotate(3deg) translate(0px, -4px);
+  box-shadow: 0 0 10px #ff3333, 0 0 5px #ff3333;
+}
+
+/* 旋转加载图标样式 */
+#nprogress .spinner {
+  display: block;
+  position: fixed;
+  z-index: 1031;
+  top: 15px;
+  right: 15px;
+}
+
+#nprogress .spinner-icon {
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: solid 2px transparent;
+  border-top-color: #ff3333;
+  border-left-color: #ff3333;
+  border-radius: 50%;
+  animation: nprogress-spinner 400ms linear infinite;
+}
+
+/* 旋转动画 */
+@keyframes nprogress-spinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

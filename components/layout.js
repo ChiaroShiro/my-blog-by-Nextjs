@@ -5,14 +5,13 @@ import Link from 'next/link'
 import profileData from '../config/profileData'
 import Router from 'next/router'
 import NProgress from 'nprogress'
-import { useEffect } from 'react' // 添加 useEffect 的导入
-import 'nprogress/nprogress.css' // 使用 nprogress 自带的样式
+import { useEffect } from 'react'
 
 const name = profileData.id
 export const siteTitle = 'Chiaro\'s Blog'
 
 // 配置 NProgress
-NProgress.configure({ showSpinner: true }) // 显示加载条的 spinner
+NProgress.configure({ showSpinner: true })
 
 export default function Layout({ children, home }) {
   useEffect(() => {
