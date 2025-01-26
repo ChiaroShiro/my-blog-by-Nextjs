@@ -4,6 +4,7 @@
   --color2: #87CEEB; /* 天蓝色 */
   --color3: #FFD700; /* 金黄色 */
   --color4: #98FB98; /* 浅绿色 */
+  --glow-size: 10px; /* 发光大小 */
 }
 
 /* NProgress 样式定制 */
@@ -20,23 +21,30 @@
   height: 2px;
   transform-origin: center;
   animation: colorChange 4s linear infinite, expand 1s ease-in-out infinite;
+  box-shadow: 0 0 var(--glow-size) var(--color1);
+  transition: box-shadow 0.4s ease;
 }
 
 @keyframes colorChange {
   0% {
     background: var(--color1);
+    box-shadow: 0 0 var(--glow-size) var(--color1);
   }
   25% {
     background: var(--color2);
+    box-shadow: 0 0 var(--glow-size) var(--color2);
   }
   50% {
     background: var(--color3);
+    box-shadow: 0 0 var(--glow-size) var(--color3);
   }
   75% {
     background: var(--color4);
+    box-shadow: 0 0 var(--glow-size) var(--color4);
   }
   100% {
     background: var(--color1);
+    box-shadow: 0 0 var(--glow-size) var(--color1);
   }
 }
 
