@@ -4,8 +4,7 @@ import Head from 'next/head'
 import Date from '../../components/date'
 import utilStyles from '../../styles/utils.module.css'
 import postsContentStyles from '../../styles/posts-content.module.css'
-import 'katex/dist/katex.min.css'
-import 'highlight.js/styles/github.css'
+import Tags from '../../components/tags'
 
 export async function getStaticPaths() {
   const paths = getAllPostIds()
@@ -29,13 +28,7 @@ export default function Post({ postData }) {
         </h1>
         <div className={utilStyles.lightText}>
           <Date dateString={postData.date} />
-          <div className={utilStyles.tags}>
-            {postData.tags && postData.tags.map((tag, index) => (
-              <span key={index} className={utilStyles.tag}>
-                {tag}
-              </span>
-            ))}
-          </div>
+          <Tags tags={postData.tags} />
         </div>
         <div 
           dangerouslySetInnerHTML={{ __html: postData.contentHtml }}

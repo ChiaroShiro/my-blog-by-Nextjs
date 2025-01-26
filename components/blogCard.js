@@ -4,8 +4,6 @@ import styles from '../styles/blogCard.module.css'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { processMarkdownContent } from '../lib/makeMarkdown'
-import 'katex/dist/katex.min.css'
-import 'highlight.js/styles/github.css'
 
 export default function BlogCard({ id, date, title, picadd, shortContent }) {
   const [processedContent, setProcessedContent] = useState(shortContent)
