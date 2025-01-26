@@ -31,6 +31,13 @@ export default function Post({ postData }) {
         </h1>
         <div className={utilStyles.lightText}>
           <Date dateString={postData.date} />
+          <div className={utilStyles.tags}>
+            {postData.tags && postData.tags.map((tag, index) => (
+              <span key={index} className={utilStyles.tag}>
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
         <div 
           dangerouslySetInnerHTML={{ __html: postData.contentHtml }}

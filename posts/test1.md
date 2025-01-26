@@ -1,6 +1,7 @@
 ---
 title: 'test1'
 date: '2025-01-25'
+tags: ['test', 'hello', '你好']
 ---
 
 让我们试试markdown样式能不能正常work

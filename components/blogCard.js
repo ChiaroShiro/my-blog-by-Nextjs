@@ -7,6 +7,7 @@ import remarkMath from 'remark-math'
 import remarkRehype from 'remark-rehype'
 import rehypeKatex from 'rehype-katex'
 import rehypeStringify from 'rehype-stringify'
+import Image from 'next/image'
 
 export default function BlogCard({ id, date, title, picadd, shortContent }) {
   const [processedContent, setProcessedContent] = useState(shortContent)
@@ -32,7 +33,8 @@ export default function BlogCard({ id, date, title, picadd, shortContent }) {
 
   return (
     <Link href={`/posts/${id}`}>
-      <div className={styles.blogCard} style={{backgroundImage: `url(${picadd})`}}>
+      <div className={styles.blogCard}>
+        <Image src={picadd} alt={title} layout="fill" objectFit="cover" className={styles.blogImage} />
         <div className={styles.blogContent}>
           <h2 className={styles.blogTitle}>{title}</h2>
           <p className={styles.blogExcerpt} 
