@@ -3,11 +3,32 @@ import styles from '../styles/layout.module.css'
 import utilStyles from '../styles/utils.module.css'
 import Link from 'next/link'
 import profileData from '../config/profileData'
+import Router from 'next/router'
+import NProgress from 'nprogress'
+import { useEffect } from 'react' // 添加 useEffect 的导入
+import 'nprogress/nprogress.css' // 使用 nprogress 自带的样式
 
 const name = profileData.id
 export const siteTitle = 'Chiaro\'s Blog'
 
+// 配置 NProgress
+NProgress.configure({ showSpinner: true }) // 显示加载条的 spinner
+
 export default function Layout({ children, home }) {
+  useEffect(() => {
+    // 监听路由事件以显示加载条
+    Router.events.on('routeChangeStart', () => NProgress.start())
+    Router.events.on('routeChangeComplete', () => NProgress.done())
+    Router.events.on('routeChangeError', () => NProgress.done())
+
+    // 清理事件监听器
+    return () => {
+      Router.events.off('routeChangeStart', () => NProgress.start())
+      Router.events.off('routeChangeComplete', () => NProgress.done())
+      Router.events.off('routeChangeError', () => NProgress.done())
+    }
+  }, [])
+
   return (
     <div className={styles.pageContainer}>
       <Head>
