@@ -1,4 +1,4 @@
-import utilStyles from '../styles/tags.module.css'
+import utilStyles from '../styles/components/tags.module.css'
 
 export default function Tags({ tags }) {
   return (

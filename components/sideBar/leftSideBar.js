@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import styles from '../../styles/leftSideBar.module.css'
+import styles from '../../styles/components/sideBar/leftSideBar.module.css'
 import utilStyles from '../../styles/utils.module.css'
 import profileData from '../../config/profileData'
 

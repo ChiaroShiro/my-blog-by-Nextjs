@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Date from './date'
-import styles from '../styles/blogCard.module.css'
+import styles from '../styles/components/blogCard.module.css'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { processMarkdownContent } from '../lib/makeMarkdown'

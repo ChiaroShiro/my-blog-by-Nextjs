@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import styles from '../styles/layout.module.css'
+import styles from '../styles/components/layout.module.css'
 import Router from 'next/router'
 import NProgress from 'nprogress'
 import { useEffect } from 'react'
