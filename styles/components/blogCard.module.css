@@ -1,0 +1,124 @@
+.blogCard {
+  position: relative;
+  height: 250px;
+  border-radius: 15px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.blogCardNoImage {
+  position: relative;
+  height: 250px;
+  border-radius: 15px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0.8;
+  background: linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%);
+  background-size: 200% 200%;
+  background-position: 0% 0%;
+}
+
+.blogCard:hover,
+.blogCardNoImage:hover {
+  transform: translateY(-5px);
+}
+
+.blogCardNoImage:hover {
+  background: linear-gradient(135deg, #ffd1ff 0%, #fad0c4 100%);
+  background-size: 200% 200%;
+  background-position: 100% 100%;
+  transition: all 0.5s ease;
+}
+
+.blogImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.blogCard:hover .blogImage {
+  filter: blur(6px);
+  transform: translateY(-5px);
+}
+
+.blogContent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;   
+  padding: 2rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  color: white;
+  z-index: 1;
+}
+
+.blogCardNoImage .blogContent {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  color: white;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2rem;
+  z-index: 1;
+}
+
+.blogTitle {
+  margin: 0 0 1rem;
+  font-size: 1.8rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;  /* 标题和标签之间的间距 */
+}
+
+.blogTitle span {
+  margin-right: 8px;
+}
+
+.blogExcerpt {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* 强制只显示一行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-clamp: 1; /* 强制只显示一行 */
+}
+
+.blogDate {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+@media (max-width: 800px) {
+  .blogCard {
+    height: 200px;
+  }
+  
+  .blogCardNoImage {
+    height: 200px;
+  }
+  
+  .blogTitle {
+    font-size: 1.2rem;
+  }
+  
+  .blogExcerpt {
+    font-size: 0.75rem;
+  }
+}
+
+.blogImage {
+  object-fit: cover;
+}

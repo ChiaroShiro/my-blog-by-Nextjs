@@ -1,0 +1,25 @@
+.pageContainer {
+  display: flex;
+  min-height: 100vh;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 280px;
+}
+
+.backToHome {
+  margin-bottom: 2rem;
+}
+
+.backToHome a {
+  color: #666;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.backToHome a:hover {
+  color: #333;
+  text-decoration: underline;
+}
