@@ -1,7 +1,40 @@
+/* 统一内容容器 */
+.article-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 3rem;
+}
+
+/* 标题样式 */
+.article-header {
+  margin-bottom: 2rem;
+  padding: 0 3rem; /* 统一内边距 */
+}
+
+/* 正文内容 */
+.markdown-content {
+  line-height: 1.8;
+  max-width: 100%; /* 继承容器宽度 */
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .article-container {
+    padding: 0 2rem;
+    max-width: 700px;
+  }
+}
+
+@media (max-width: 800px) {
+  .article-container {
+    padding: 0 1.5rem;
+    max-width: 100%;
+  }
+}
+
 /* Markdown内容基础样式 */
 .markdown-content {
     font-size: 1.1rem;
-    line-height: 1.7;
     color: #24292e;
   }
   
@@ -29,4 +62,24 @@
     padding-left: 1em;
     color: #6a737d;
     border-left: 0.25em solid #dfe2e5;
+  }
+  
+  /* 调整标题间距 */
+  .markdown-content h1,
+  .markdown-content h2 {
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  /* 调整日期和标签容器 */
+  .post-meta {
+    margin: 1.5rem 0;
+    padding-left: 0; /* 移除单独的内边距 */
+  }
+
+  /* 单独调整标题 */
+  .article-header h1 {
+    margin-left: 0;
+    padding-left: 0;
+    position: static;
   }

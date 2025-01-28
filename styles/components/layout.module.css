@@ -5,8 +5,11 @@
 
 .mainContent {
   flex: 1;
-  padding: 2rem;
   margin-left: 280px;
+  margin-right: 280px;
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .backToHome {
@@ -22,4 +25,38 @@
 .backToHome a:hover {
   color: #333;
   text-decoration: underline;
+}
+
+@media (min-width: 1600px) {
+  .mainContent {
+    max-width: 1200px;
+  }
+}
+
+@media (max-width: 1400px) {
+  .mainContent {
+    margin-right: 300px;
+    max-width: 800px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .mainContent {
+    margin-right: 280px;
+    max-width: 600px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .mainContent {
+    margin-left: 280px;
+    margin-right: 20px;
+  }
+}
+
+@media (max-width: 800px) {
+  .mainContent {
+    margin: 0 20px;
+    padding: 1rem;
+  }
 }

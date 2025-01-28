@@ -2,8 +2,10 @@ import Head from 'next/head'
 import styles from '../styles/components/layout.module.css'
 import Router from 'next/router'
 import NProgress from 'nprogress'
-import { useEffect } from 'react'
+import { useEffect, useContext } from 'react'
 import LeftSideBar from './sideBar/leftSideBar'
+import { PostsContext } from '../context/PostsContext'
+import RightSideBar from './sideBar/rightSideBar'
 
 export const siteTitle = 'Chiaro\'s Blog'
 
@@ -11,6 +13,8 @@ export const siteTitle = 'Chiaro\'s Blog'
 NProgress.configure({ showSpinner: true })
 
 export default function Layout({ children, home }) {
+  const { allPostsData, lastUpdateTime } = useContext(PostsContext)
+
   useEffect(() => {
     // 监听路由事件以显示加载条
     Router.events.on('routeChangeStart', () => NProgress.start())
@@ -47,7 +51,8 @@ export default function Layout({ children, home }) {
       <LeftSideBar />
       <main className={styles.mainContent}>
         {children}
-      </main> 
+      </main>
+      <RightSideBar allPostsData={allPostsData} lastUpdateTime={lastUpdateTime} />
     </div>
   )
 }
