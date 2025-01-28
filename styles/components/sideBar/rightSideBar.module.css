@@ -1,3 +1,61 @@
+.sidebarContainer {
+  display: grid;
+  grid-template-columns: minmax(200px, 15%) 1fr minmax(200px, 15%);
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.leftSidebar {
+  position: fixed;
+  left: 0;
+  width: 15%;
+  height: 100vh;
+  padding: 1rem;
+}
+
+.mainContent {
+  grid-column: 2;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  transition: padding 0.3s ease;
+}
+
+.rightSidebar {
+  position: fixed;
+  right: 0;
+  width: 15%;
+  height: 100vh;
+  padding: 1rem;
+}
+
+@media (max-width: 1400px) {
+  .sidebarContainer {
+    grid-template-columns: minmax(150px, 12%) 1fr minmax(150px, 12%);
+  }
+}
+
+@media (max-width: 1200px) {
+  .sidebarContainer {
+    grid-template-columns: 0 1fr 0;
+  }
+  
+  .leftSidebar,
+  .rightSidebar {
+    display: none;
+  }
+  
+  .mainContent {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .mainContent {
+    padding: 1.5rem 1rem;
+  }
+}
+
 .sidebar {
   position: fixed;
   right: 0;
@@ -92,4 +150,10 @@
   margin-left: 280px; /* 左侧边栏宽度 */
   margin-right: 280px; /* 右侧边栏宽度 */
   padding: 2rem;
+}
+
+.contentWrapper {
+  width: 100%;
+  max-width: 100%;
+  transition: all 0.3s ease;
 }

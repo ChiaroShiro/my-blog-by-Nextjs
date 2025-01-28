@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { processMarkdownContent } from '../lib/makeMarkdown'
 import Tags from './tags'
 
-export default function BlogCard({ id, date, title, picadd, shortContent, tags }) {
+export default function BlogCard({ id, coverUrl, date, title, shortContent, tags, index }) {
   const [processedContent, setProcessedContent] = useState(shortContent)
   
   useEffect(() => {
@@ -20,15 +20,25 @@ export default function BlogCard({ id, date, title, picadd, shortContent, tags }
     processContent()
   }, [shortContent])
 
+  console.log(`渲染文章 ${id}，封面URL: ${coverUrl}`)
+  
   return (
     <Link href={`/posts/${id}`}>
-      <div className={picadd ? styles.blogCard : styles.blogCardNoImage}>
-        {picadd && (
-          <Image 
-            src={picadd} 
-            alt={title} 
-            fill={true}
+      <div className={coverUrl ? styles.blogCard : styles.blogCardNoImage}>
+        {coverUrl && (
+          <Image
+            src={coverUrl}
+            alt={`${title} 封面图`}
+            fill
             className={styles.blogImage}
+            priority={index < 3}
+            unoptimized={process.env.NODE_ENV === 'development'}
+            quality={85}
+            sizes="(max-width: 768px) 100vw, 400px"
+            style={{
+              objectFit: 'cover',
+              objectPosition: 'center'
+            }}
           />
         )}
         <div className={styles.blogContent}>

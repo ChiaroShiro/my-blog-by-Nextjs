@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useContext } from 'react'
 import styles from '../../styles/components/sideBar/rightSideBar.module.css'
 import Tags from '../../components/tags'
+import dayjs from 'dayjs'
+import { PostsContext } from '../../context/PostsContext'
 
 export default function RightSideBar({ allPostsData, lastUpdateTime }) {
+  const { lastUpdateTime: contextLastUpdateTime } = useContext(PostsContext)
   const [runningDays, setRunningDays] = useState(0)
 
   useEffect(() => {
@@ -13,6 +16,10 @@ export default function RightSideBar({ allPostsData, lastUpdateTime }) {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     setRunningDays(diffDays)
   }, [])
+
+  // 新增运行天数计算
+  const startDate = dayjs('2025-01-24')
+  const daysRunning = dayjs().diff(startDate, 'day')
 
   // 收集所有标签
   const allTags = [...new Set(allPostsData.flatMap(post => post.tags || []))]
@@ -28,12 +35,12 @@ export default function RightSideBar({ allPostsData, lastUpdateTime }) {
             <span className={styles.statsValue}>{allPostsData.length}</span>
           </div>
           <div className={styles.statsItem}>
-            <span className={styles.statsLabel}>运行天数</span>
-            <span className={styles.statsValue}>{runningDays}</span>
+            <span className={styles.statsLabel}>博客运行天数</span>
+            <span className={styles.statsValue}>{daysRunning}</span>
           </div>
           <div className={styles.statsItem}>
             <span className={styles.statsLabel}>最后更新</span>
-            <span className={styles.statsValue}>{lastUpdateTime}</span>
+            <span className={styles.statsValue}>{contextLastUpdateTime}</span>
           </div>
         </div>
       </div>

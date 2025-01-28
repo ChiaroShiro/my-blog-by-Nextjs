@@ -1,51 +1,46 @@
-.blogCard {
-  position: relative;
-  height: 250px;
+.blogCard,
+.blogCardNoImage {
+  height: 240px; /* 新高度 */
+  width: 100%;
   border-radius: 15px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  opacity: 0.8;
+  position: relative;
+}
+
+.blogCard {
+  background: #f0f0f0; /* 加载时的背景色 */
 }
 
 .blogCardNoImage {
-  position: relative;
-  height: 250px;
-  border-radius: 15px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  opacity: 0.8;
   background: linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%);
   background-size: 200% 200%;
-  background-position: 0% 0%;
+  animation: gradientShift 8s ease infinite;
 }
 
-.blogCard:hover,
+.blogCard:hover .blogImage {
+  transform: scale(1.05);
+}
+
 .blogCardNoImage:hover {
   transform: translateY(-5px);
+  animation: gradientShift 4s ease infinite;
 }
 
-.blogCardNoImage:hover {
-  background: linear-gradient(135deg, #ffd1ff 0%, #fad0c4 100%);
-  background-size: 200% 200%;
-  background-position: 100% 100%;
-  transition: all 0.5s ease;
+@keyframes gradientShift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
 }
 
 .blogImage {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: filter 0.3s ease, transform 0.3s ease;
-}
-
-.blogCard:hover .blogImage {
-  filter: blur(6px);
-  transform: translateY(-5px);
+  object-position: center; /* 始终居中显示 */
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .blogContent {
@@ -53,10 +48,10 @@
   bottom: 0;
   left: 0;
   right: 0;   
-  padding: 2rem;
+  padding: 1.2rem; /* 减少内边距 */
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
   color: white;
-  z-index: 1;
+  z-index: 2 !important; /* 内容在图片上方 */
 }
 
 .blogCardNoImage .blogContent {
@@ -71,8 +66,8 @@
 }
 
 .blogTitle {
-  margin: 0 0 1rem;
-  font-size: 1.8rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.4rem; /* 调小标题字号 */
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -91,23 +86,21 @@
   -webkit-line-clamp: 1; /* 强制只显示一行 */
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-clamp: 1; /* 强制只显示一行 */
+  line-clamp: 1;
 }
 
 .blogDate {
   display: block;
-  margin-top: 0.5rem;
+  margin-top: 0.3rem; /* 调整日期间距 */
   font-size: 0.9rem;
   opacity: 0.8;
 }
 
+/* 移动端适配 */
 @media (max-width: 800px) {
-  .blogCard {
-    height: 200px;
-  }
-  
+  .blogCard,
   .blogCardNoImage {
-    height: 200px;
+    height: 180px; /* 新移动端高度 */
   }
   
   .blogTitle {
@@ -117,8 +110,4 @@
   .blogExcerpt {
     font-size: 0.75rem;
   }
-}
-
-.blogImage {
-  object-fit: cover;
 }

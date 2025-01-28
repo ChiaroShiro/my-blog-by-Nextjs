@@ -4,17 +4,20 @@ import { getPostsContext } from '../lib/postsContext'
 import { withPostsContext } from '../lib/withPostsContext'
 
 export default function Home({ postsContextValue }) {
+  console.log('首篇文章数据:', postsContextValue.allPostsData[0])
+  console.log('所有文章数据:', postsContextValue.allPostsData)
   return (
     <section className={styles.blogGrid}>
-      {postsContextValue.allPostsData.map(({ id, date, title, picadd, shortContent, tags }) => (
+      {postsContextValue.allPostsData.map(({ id, date, title, coverUrl, shortContent, tags }, index) => (
         <BlogCard
           key={id}
           id={id}
+          coverUrl={coverUrl}
           date={date}
           title={title}
-          picadd={picadd}
           tags={tags}
           shortContent={shortContent}
+          index={index}
         />
       ))}
     </section>

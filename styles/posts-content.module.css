@@ -2,19 +2,20 @@
 .article-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 0 3rem;
+  padding: 0 2rem; /* 减少两侧内边距 */
 }
 
 /* 标题样式 */
 .article-header {
   margin-bottom: 2rem;
-  padding: 0 3rem; /* 统一内边距 */
+  padding: 0; /* 移除内边距 */
 }
 
 /* 正文内容 */
 .markdown-content {
   line-height: 1.8;
   max-width: 100%; /* 继承容器宽度 */
+  padding: 0; /* 移除正文内边距 */
 }
 
 /* 响应式调整 */
@@ -74,7 +75,7 @@
   /* 调整日期和标签容器 */
   .post-meta {
     margin: 1.5rem 0;
-    padding-left: 0; /* 移除单独的内边距 */
+    padding-left: 0;
   }
 
   /* 单独调整标题 */
