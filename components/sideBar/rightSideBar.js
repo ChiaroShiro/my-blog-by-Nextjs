@@ -10,7 +10,7 @@ export default function RightSideBar({ allPostsData, lastUpdateTime }) {
 
   useEffect(() => {
     // 计算运行天数
-    const startDate = new Date('2023-11-24')
+    const startDate = new Date('2025-01-24')
     const today = new Date()
     const diffTime = Math.abs(today - startDate)
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
