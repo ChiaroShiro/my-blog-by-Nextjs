@@ -34,6 +34,121 @@
   100% { background-position: 0% 0%; }
 }
 
+/* 置顶标签样式 */
+.pinnedBadge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.pinnedBadge::before {
+  content: '置顶';
+  position: absolute;
+  width: 150px;
+  text-align: center;
+  line-height: 32px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  top: 20px;
+  left: -32px;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  animation: ribbonShine 3s infinite linear;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 绸缎效果 */
+  border-top: 1px dashed rgba(255, 255, 255, 0.5);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.5);
+}
+
+/* 绸缎折痕效果 */
+.pinnedBadge::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: -32px;
+  width: 150px;
+  height: 32px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.2) 20%, 
+    transparent 40%,
+    rgba(255, 255, 255, 0.2) 60%,
+    transparent 80%
+  );
+  transform: rotate(-45deg);
+  opacity: 0.7;
+  pointer-events: none;
+  filter: blur(1px);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes ribbonShine {
+  0% {
+    background-position: 0% center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    background-position: 100% center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 107, 107, 0.3);
+  }
+  100% {
+    background-position: 0% center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* 当悬停在博客卡片上时的效果 */
+.blogCard:hover .pinnedBadge::before {
+  transform: rotate(-45deg) translate(5px, -5px) scale(1.05);
+  background: linear-gradient(45deg, #ff5252, #ff7676);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3), 0 0 25px rgba(255, 107, 107, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.blogCardNoImage:hover .pinnedBadge::before {
+  transform: rotate(-45deg) translate(5px, -5px) scale(1.05);
+  background: linear-gradient(45deg, #ff5252, #ff7676);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3), 0 0 25px rgba(255, 107, 107, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.blogCard:hover .pinnedBadge::after,
+.blogCardNoImage:hover .pinnedBadge::after {
+  transform: rotate(-45deg) translate(5px, -5px);
+  animation: ribbonGlow 2s infinite alternate ease-in-out;
+}
+
+@keyframes ribbonGlow {
+  0% {
+    opacity: 0.6;
+    filter: blur(1px);
+  }
+  50% {
+    opacity: 0.9;
+    filter: blur(0.5px);
+  }
+  100% {
+    opacity: 0.7;
+    filter: blur(0.8px);
+  }
+}
+
 .blogImage {
   position: absolute;
   width: 100%;
@@ -109,5 +224,25 @@
   
   .blogExcerpt {
     font-size: 0.75rem;
+  }
+  
+  .pinnedBadge {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .pinnedBadge::before {
+    width: 130px;
+    line-height: 28px;
+    font-size: 0.8rem;
+    top: 17px;
+    left: -27px;
+  }
+  
+  .pinnedBadge::after {
+    top: 17px;
+    left: -27px;
+    width: 130px;
+    height: 28px;
   }
 }

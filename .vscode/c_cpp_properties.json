@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                   "${workspaceFolder}/**",
+                   "D:/ProgramFiles/MinGW-w64/mingw64/lib/gcc/x86_64-w64-mingw32/14.2.0/include",
+                   "D:/ProgramFiles/MinGW-w64/mingw64/include",
+                   "D:/ProgramFiles/MinGW-w64/mingw64/x86_64-w64-mingw32/include"
+               ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "D:\\ProgramFiles\\MinGW-w64\\mingw64\\bin\\g++.exe",
+            "cStandard": "c23",
+            "cppStandard": "gnu++23",
+            "intelliSenseMode": "gcc-x64",
+            "compilerArgs": ["-std=c++23"]
+        }
+    ],
+    "version": 4
+}

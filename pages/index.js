@@ -7,7 +7,7 @@ export default function Home({ postsContextValue }) {
   console.log('所有文章数据:', postsContextValue.allPostsData)
   return (
     <section className={styles.blogGrid}>
-      {postsContextValue.allPostsData.map(({ id, date, title, coverUrl, shortContent, tags }, index) => (
+      {postsContextValue.allPostsData.map(({ id, date, title, coverUrl, shortContent, tags, pinned }, index) => (
         <BlogCard
           key={id}
           id={id}
@@ -17,6 +17,7 @@ export default function Home({ postsContextValue }) {
           tags={tags}
           shortContent={shortContent}
           index={index}
+          pinned={pinned}
         />
       ))}
     </section>

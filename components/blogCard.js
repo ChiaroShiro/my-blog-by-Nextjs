@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { processMarkdownContent } from '../lib/makeMarkdown'
 import Tags from './tags'
 
-export default function BlogCard({ id, coverUrl, date, title, shortContent, tags, index }) {
+export default function BlogCard({ id, coverUrl, date, title, shortContent, tags, index, pinned }) {
   const [processedContent, setProcessedContent] = useState(shortContent)
   
   useEffect(() => {
@@ -40,6 +40,9 @@ export default function BlogCard({ id, coverUrl, date, title, shortContent, tags
               objectPosition: 'center'
             }}
           />
+        )}
+        {pinned && (
+          <div className={styles.pinnedBadge}></div>
         )}
         <div className={styles.blogContent}>
           <h2 className={styles.blogTitle}>
