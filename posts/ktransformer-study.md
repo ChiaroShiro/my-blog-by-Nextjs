@@ -220,3 +220,71 @@ def inject(module, local_optimization_dict, model_config:AutoConfig ,gguf_loader
                 child_optimization_dict = {k: v for k, v in local_optimization_dict.items() if k.startswith(child_prefix)}
                 inject(child, child_optimization_dict, model_config, gguf_loader, child_prefix)
 ```
+
+## GGUF 读取处理
+
+> 名词解释：
+\
+GGUF 是量化存储格式，将高精度浮点数转换成低精度存储，在运行模型的时候还需要把低精度浮点数解量化成高精度形式。
+GGML 是一个高效处理张量运行和模型推理的库，尤其对 CPU 形式做了优化，GGUF 文件格式就是实现用来方便 GGML 处理的格式。
+
+util.custom_gguf.py 文件里具体的写了读取 GGUF 文件的方法
+
+#### \_\_init\_\_
+
+首先会尝试使用 safetensor 方法打开 gguf 路径，如果成功的话就直接结束了，否则会尝试使用 GGUF 方法打开
+
+safetensor 方法写明在 util.custom_loader 文件里，似乎逻辑比较简单，值得注意的是里面会通过 safetensor 库里的 tensor.to() 函数完成对张量存储设备的转换
+
+> 当你调用 .to(device) 时，如果目标设备与当前设备不同，底层会执行数据传输。对于大规模模型或数据，这个过程可能需要一定的时间，因此在实际编程中最好在初始化阶段就将相关张量移至目标设备，以避免在训练或推理过程中频繁的数据传输。
+
+**有一个比较值得注意的地方**：
+
+在 GGUF 方法处理的时候使用了内存映射读取整个 GGUF 文件
+
+```python
+self.file_data_map[file_name] = np.memmap(file_name, mode = 'r')
+```
+
+这里使用了 Numpy 里的 memmap 方法实现了内存映射，即可以访问大规模二进制文件但是又不需要放入内存中，感觉是后面可以使用的方法
+
+同样的 python 里也原生支持了一个类似的东西是 mmap，功能有点类似
+
+#### load_gguf
+
+读取 GGUF 文件的配置，处理出来每个张量的存储偏移量和元数据，但是不涉及到具体加载张量
+
+#### get_mmap_tensor
+
+返回一个直接 \_\_init\_\_ 中存储到内存映射的 Numpy 数组
+
+返回的还是内存映射
+
+#### get_undequanted_tensor_and_ggml_type
+
+把内存映射 numpy 数组转换成 pytorch 张量
+
+值得注意的是因为 from_numpy 是共享内存的，所以这里的数据还是在内存映射中
+
+#### load_gguf_tensor
+
+加载权重的核心函数，会根据张量大小选择一次性加载还是分块加载
+
+如果 device 是 cuda 则会调用 GGML_DEQUANTIZE_GPU 列表里的函数加载权重
+
+如果 device 是 cpu 则会调用 GGML_DEQUANTIZE 列表里的函数加载权重，并且确保了内存映像会放进内存中
+
+另外对 BF16 和 Llama 模型做了特殊处理
+
+两个列表的函数实现也在这个文件里，但是看起来很二进制很底层东西不多
+
+但是实际上似乎在这一步用出去的内存只有五六个 G 的样子，但是 process.memory_info() 显示用到三十多 G，不过不知道为啥 htop 指令看到内存使用量只要三四 G，有点诡异
+
+后记了下这个函数核心部分运行完的内存使用量变化，后面的输出结果类似于
+
+
+> 内存使用量（开始前）：34082.52 MB 
+\
+ 内存使用量（结束后）：34122.02 MB
+ \
+ 内存使用量差值：39.50 MB，累计内存差值：5560.43 MB
