@@ -288,3 +288,96 @@ self.file_data_map[file_name] = np.memmap(file_name, mode = 'r')
  内存使用量（结束后）：34122.02 MB
  \
  内存使用量差值：39.50 MB，累计内存差值：5560.43 MB
+
+
+## 算子层
+
+> cpuinfer_ext 是 KT 自己实现的一个 C++ 编写的 python 扩展库，在 ktransformer.ktransformer_ext.ext_bindings.cpp 中 561 行里具体定义了这个扩展，并用 CMake 构建。
+\
+大体上实现了几个比较重要的内容
+\
+CPUInfer - CPU 上的核心推理引擎类
+linear - 线性层的加速实现
+mlp - 多层感知机的加速实现
+moe - MoE 的实现
+kvcache - KV 缓存相关功能，用于优化注意力机制
+
+注意到 Qwen 的 YAML 文件里面将 device 设成 cpu 的地方只有两个，一个是 embed_tokens 功能的 generate 和 prefill 都在 cpu 上，一个是 mlp.experts 替换成 operators.experts.KTransformersExperts 的地方时 generate 使用了 cpu。显然 embed_tokens 是不太重要的，所以主要看看 KTransformersExperts 这个 MoE 部分的代码。
+
+其中在替换 KTransformersExperts 时通过 generate_op 参数指定了参数使用 KExpertsCPU 类，我们先分析这个。
+
+首先注意到这个类继承自 KExpertsBase 类，这是个简单的虚类，里面只有一个 load_weights 函数值得说道一下。
+
+- load_weights 函数首先定义了 6 个 None 变量，用来存储 MoE 里的三个重要的矩阵 门控矩阵、上投影矩阵、下投影矩阵。然后通过 gguf_loader 里的 load_gguf_tensor 那个核心函数加载权重，随后再获取了类型以后一起作为返回值返回。然后它还特化了一下对 Mixtral-8x7B-Instuct 的支持。
+
+KExpertsCPU 类继承自 KExpertsBase 类，虽然他把 load_weights 重载了，但是再后面阅读 KTransformersExperts 时还是有用的。
+
+#### KExpertsCPU 部分
+
+- \_\_init\_\_
+
+这个函数没什么值得说的，要注意的是里面将 KExpertsCPU.CPU_INFER （注意不是 self）设成了 CPUInfer 类型，初始参数用 Config().cpu_infer 传进去，这个参数是从 cfg 配置文件里读入的，Config 就是个处理 cfg 文件的类，然后 CPUInfer 是 operator.cpuinfer 文件里的 CPUInfer 类，这个文件前面大段地实现了另一个类，但是 CPUInfer 类非常简单，就是直接调用了外部 C++ 库 cpuinfer_ext 里的 CPUInfer。
+
+- load_weights
+
+这个函数大体架构和父类里的差不多，不过他也支持了 safetensors 的加载方式。
+
+但是要注意的是在处理 GGUF 加载方式的时候不是通过 load_gguf_tensor 这个函数加载的，而是通过 get_mmap_tensor 这个方式加载的。对 Mixtral-8x7B-Instuct 的特化支持也是使用 get_mmap_tensor 支持的。处理完之后直接把 tensor 放到字典里返回了
+
+- load
+
+首先通过 load_weight 得到并取出三个 tensor。并随后通过 ctypes 库直接得到三个 tensor 的指针
+
+然后通过 cpuinfer_ext 外部库实例化出来 MoE 部分。
+
+然后是 warmup 的部分，好像是进行内存缓存优化？不是很懂。再然后就是给一个 tensor 赋成 0 值，也就是初始化一下。
+
+- submit_for_one_decode
+
+这个函数就是给三个张量赋值，从 VRAM copy 到了 DRAM 上，然后调用了 cpuinfer_ext 里的函数。
+
+虽然不是很懂但是调用的函数的作用大概就是给 MoE 提交了一个异步计算前向任务的请求。
+
+- sync_for_one_decode
+
+这个函数是上个函数的第二步，等待 MoE 计算完成然后把结果从 CPU copy 到 GPU 上，返回结果。
+
+- forward
+
+计算前向的。
+
+第一个分支官方注释说 unreachable，那就不管了。第二个分支上来先做了一个把张量迁移到 CPU 上的操作，然后也是提交了个 MoE 的异步计算，等待计算完成后把张量转移进 out_device 里制定的设备里
+
+#### KTransformersExperts 部分
+
+注意到 KTransformersExperts 这个类继承自两个类 BaseInjectedModule 和 KExpertsBase，我们先从这里分析。
+
+- BaseInjectedModule 类的内容比较简单，通过 orig_module 参数记录把哪个模块替换掉了，然后存储了 prefill 和 generate 的 device 参数。然后重写了 \_\_setattr\_\_ 和 \_\_getattr\_\_ 函数，使得先在替换类中寻找属性，找不到再去被替换类里找，都不行再去父类里面找。然后里面还需要执行前向功能的 forward 和加载权重的 load。这部分在 KTE 类中被重载了，所以就简单过一下
+
+- 在 load 中会调用 utils 里的 load_weights 函数，这个函数负责处理加载权重。load_weights 会递归地寻找并调用 load_cur_state_dict 做具体的加载过程，这个函数内支持 safetensor 和 gguf 两种方法，gguf 还是 调用的 load_gguf_tensor 函数完成的加载
+
+- forward 直接用了被替换模型的前向函数
+
+具体到 KTransformersExperts 类中
+
+- \_\_init\_\_
+
+直接根据 op 参数实例化了前面的类，在 Qwen 的 generate 里就是实例化了 KExpertsCPU 类存到了 self 里，其他的都是简单的存一下罢了
+
+- load
+
+self 里有个 mode 参数记录当前的状态，如果要 generate 就是 unload prefill、load generate，如果要 prefill 就 unload generate、load prefill，还有就是 unload 状态直接把俩全卸载了
+
+这里的 unload 和 load 都是指调用 op 参数指定的前面的类，指导前面的类做这些工作。
+
+- forward 
+
+根据当前的状态选择用 prefill 还是 generate 的类，然后调用他们的 forward 做前向。
+
+#### 对这部分做个 Conclusion 
+
+KTransformersExperts 就是个顶层模块，负责根据模式调度使用 prefill 还是 generate 功能，而具体选择什么方式实现 prefill 和 generate 是由参数决定的，也就是 YAML 实现的
+
+而具体操作层面，比如 KExpertsCPU 类中，做的事情就是根据功能和参数选择了张量加载的设备，实现了 “加载张量到 CPU，调用 cpuinfer_ext 里实现的 MoE 计算前向，将结果返回存放入 GPU 中” 这个过程。
+
+这部分就是所需要重写的，似乎 KTransformerExperts 类不怎么需要动，因为只是个顶层的东西，但是肯定需要写一个自己的 KExpertsCPU 这样具体执行的类，在翻阅的时候就能观察到这个代码根据继承和调用外部库，层层叠叠地累得很高了，所以写得时候应该是要补充很多外部工具和外部库的知识的。
