@@ -16,7 +16,9 @@ export default function LeftSideBar() {
         />
         <h2 className={styles.profileName}>{name}</h2>
         <p className={styles.profileBio}>
-          {profileData.bio}
+          {profileData.bio1}
+          <hr style={{ width: '50%', margin: '10px auto' }} />
+          {profileData.bio2}
         </p>
       </div>
       

@@ -381,3 +381,23 @@ KTransformersExperts 就是个顶层模块，负责根据模式调度使用 pref
 而具体操作层面，比如 KExpertsCPU 类中，做的事情就是根据功能和参数选择了张量加载的设备，实现了 “加载张量到 CPU，调用 cpuinfer_ext 里实现的 MoE 计算前向，将结果返回存放入 GPU 中” 这个过程。
 
 这部分就是所需要重写的，似乎 KTransformerExperts 类不怎么需要动，因为只是个顶层的东西，但是肯定需要写一个自己的 KExpertsCPU 这样具体执行的类，在翻阅的时候就能观察到这个代码根据继承和调用外部库，层层叠叠地累得很高了，所以写得时候应该是要补充很多外部工具和外部库的知识的。
+
+#### 详细分析下数据存储的设备变化
+
+- 在 KExpertsCPU 的 load_weights 中，使用 gguf 读取张量会使用 get_mmap_tensor，此时返回的依旧是内存映射，数据一直在磁盘中。
+
+- 在 KExpertsCPU 的 load 中，获取了内存映射以后，在进行此步获取内存指针时，会把内存映射懒加载到内存中
+
+```python
+gate_ptr = ctypes.addressof(
+    ctypes.cast(self.gate.ctypes.data, ctypes.POINTER(ctypes.c_uint64)).contents
+)
+up_ptr = ctypes.addressof(
+    ctypes.cast(self.up.ctypes.data, ctypes.POINTER(ctypes.c_uint64)).contents
+)
+down_ptr = ctypes.addressof(
+    ctypes.cast(self.down.ctypes.data, ctypes.POINTER(ctypes.c_uint64)).contents
+)
+```
+
+通过测速可以发现这几行的代码运行速度异常地慢
