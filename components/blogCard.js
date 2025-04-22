@@ -34,7 +34,7 @@ export default function BlogCard({ id, coverUrl, date, title, shortContent, tags
             priority={index < 3}
             unoptimized={process.env.NODE_ENV === 'development'}
             quality={85}
-            sizes="(max-width: 768px) 100vw, 400px"
+            sizes="100vw"
             style={{
               objectFit: 'cover',
               objectPosition: 'center'

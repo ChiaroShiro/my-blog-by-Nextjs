@@ -401,3 +401,194 @@ down_ptr = ctypes.addressof(
 ```
 
 通过测速可以发现这几行的代码运行速度异常地慢
+
+# Task 2
+
+因为内存映射的管理是完全依靠操作系统进行的，我们用代码很难实现对内存映射的加载和卸载，所以这个具体还是做 C++ 层面的修改吧
+
+**后面开始对 C++ 层面的代码做分析**
+
+ktransformers_ext 文件夹里提供了 pybind 工具实现的，具体模块设置在顶级目录的 ext_binding.cpp 里，以 MoE 部分简单介绍一下，顺便学习一个 pybind 的用法：
+
+```cpp
+auto moe_module = m.def_submodule("moe");
+py::class_<MOEConfig>(moe_module, "MOEConfig")
+    .def(py::init([](int expert_num, int routed_expert_num, int hidden_size,
+                        int intermediate_size, int stride, int group_min_len,
+                        int group_max_len, intptr_t gate_proj,
+                        intptr_t up_proj, intptr_t down_proj, int gate_type,
+                        int up_type, int down_type, int hidden_type) {
+        return MOEConfig(expert_num, routed_expert_num, hidden_size,
+                            intermediate_size, stride, group_min_len,
+                            group_max_len, (void *)gate_proj, (void *)up_proj,
+                            (void *)down_proj, (ggml_type)gate_type,
+                            (ggml_type)up_type, (ggml_type)down_type,
+                            (ggml_type)hidden_type);
+    }));
+py::class_<MOE>(moe_module, "MOE")
+    .def(py::init<MOEConfig>())
+    .def("warm_up", &MOEBindings::WarmUpBindinds::cpuinfer_interface)
+    .def("forward", &MOEBindings::ForwardBindings::cpuinfer_interface);
+```
+
+这里定义了 cpuinfer_ext 的子模块 moe，然后把类 MOEConfig 作为了库中的类，但是 MOEConfig 似乎只是一个打包参数的类，因为其构造函数里面用到 python 里没法提供的类型，所以在这儿用 lambda 手写了一个构造函数
+
+下面把 MOE 类作为了库中的类，并把构造函数、warm_up 和 forward 作为了可调用函数，注意这里 warm_up 和 forward 并不是直接调用 MOE 类里的函数，而是调用了前面类里的函数，做了一个功能绑定。
+
+这个功能绑定是给异步操作使用的，具体来说在处理计算任务，比如调用 forward 的时候不会立刻执行 forward 进行计算，而是会返回一个调用方法（pair）里面分别是调用他要用的函数（inner）以及参数。调用的时候需要把这些东西交给 CPUInfer，然后他来处理队列和异步等操作。
+
+至于 inner 函数，就是接收一个 void* 参数包作为函数参数，然后把要调用的函数和它的参数交给 cpu_infer 里的 enqueue 函数处理。
+
+比如 python 代码端的这一行代码可以看到，调用 forward 以后其实是把返回值作为结果传给了 cpu_infer 里的 submit 函数
+
+```python
+self.cpu_infer.submit(self.moe.forward(expert_ids.size(0), expert_ids.size(1), expert_ids.data_ptr(), weights.data_ptr(), input_tensor.data_ptr(), output.data_ptr()))
+```
+
+显然，我们得先分析 cpu_infer 这个类
+
+## cpu_infer 类
+
+这个类就是管理异步线程的类，backend 是 Backend 的实例化，似乎用于管理线程池之类的东西？task_queue 是管理异步进行的队列
+
+- enqueue
+
+inner 函数中最终调用的函数，会把一个 lambda 函数塞进 task_queue 中，这个 lambda 函数的作用就是执行参数里的函数
+
+- submit
+
+把在 pybind 中的 bind 类里返回的那个 pair 作为参数，实际作用调用 pair.first（就是那个 inner 函数），参数是 pair.second，注意在操作前会把之前为 nullptr 的 CPUInfer* 参数填充为 this
+
+- sync
+
+阻塞等待 task_q 里的任务全执行完
+
+- submit_with_cuda_stream
+
+在给指定的 cuda 流里塞一个 cpu 任务，要求在 cpu 任务执行结束以后才继续进行 cuda 流的其他任务
+
+- sync_with_cuda_stream
+
+在 cuda 流里塞一个阻塞等待 task_q 结束的任务
+
+#### Backend 类
+
+负责管理多线程的类。构造函数会创建 max_thread_num_ 个线程，每个线程都开始做 worker_thread 函数，同时给每个线程开一个记录状态的 ThreadStatus 类型变量
+
+每个 ThreadStatus 里有三个变量，一个是 status，表示当前这个线程的状态，有 WAITING、WORKING、EXIT 三个状态，意思很显然。另外两个是 curr 和 end，表示在执行任务的时候，当前执行到第几个任务，执行到第几个任务结束。
+
+每个线程都会不停的做 worker_thread 函数，这个函数的内容就是不停的读取自己的状态，如果是 WAITING 就会在和类似计网里 CSDA/MA 那些东西差不多，WORKING 结束一段时间内会忙监听，如果都忙就低功耗等待。如果自己状态是 WORKING 就启动 process_tasks 函数。如果是 EXIT 就退出。
+
+do_work_stealing_job 是多线程任务的启动函数，这个函数会计算出要用几个线程完成给定的任务，每个线程分配到哪些任务，执行任务用具体哪个函数。在分配任务结束以后就给线程状态设置为 WORKING，然后哪些线程在做 worker_thread 的时候就会读到 WORKING 信号开始工作。同时当前进程也会开始工作，也就是执行 process_tasks 函数
+
+process_tasks 函数是每个线程具体执行任务时要做的事情。前面会给每个线程钦定好三个要执行的任务函数，分别是 init_func_，compute_func_，finalize_func_，具体内容是传参决定的。
+
+先执行一次 init_func_，结束前执行一次 finalize_func_，关键在 compute_func_ 这里。每个线程会用循环不停的执行自己被分配到的任务，在自己的任务都执行完之后会去搜索别的线程，如果别的线程还有没做完的任务就直接拿过来由自己做，就可以加速了。
+
+在调用方面，Backend 是在 pybind 绑定的那些函数里的参数，比如 MOE 部分的 forward 函数最后一个参数就是 Backend，这个参数不是通过 pybind 从而从 python 传进来，而是在 CPUInfer 中的 enqueue 时用 invoke 把这个参数强行包进参数里。这或许也侧面说明这个 C++ 库里所有通过 pybind 绑定的 C++ 函数都会用到多线程？
+
+#### task_queue
+
+一个处理任务队列的类，有一个 queue 来存储任务函数，里面的元素都是 function<void()>，具体来说实现的很巧妙，因为 ext_binding 里那行绑定类里 inner 中塞进 enqueue 的都是 lambda 函数，这些 lambda 函数就一句话，就是按照给定的参数执行实际要执行的函数，所以这里所有的函数都被包装成了 void() 类型的函数。
+
+这个类会开一个线程 worker，这个线程会不停的运行 processTasks。
+
+processTasks 具体内容还是很简单的，每次在队列里有待处理任务的时候取任务出来执行。
+
+总体的思路非常简单，但是因为涉及到多线程，所以用到了很多锁，另外在任务队列为空的时候，为了避免程序不停的轮询队列造成 cpu 资源浪费，就用了条件变量的方法在队列为空且没有退出信号的时候直接睡眠。
+
+**现在终于彻底理解了 CPUInfer 部分在干啥了，下面来看 MOE 部分**
+
+## MOE 类
+
+首先从 ext_binding 部分引入一下，先看看 MOEConfig 的结构：
+
+```
+构造函数 (__init__):
+它接受 14 个参数从 Python 传入：
+expert_num: 专家数量 (int)
+routed_expert_num: 每个 token 路由到的专家数量 (int)
+hidden_size: 隐藏层大小 (int)
+intermediate_size: 中间层大小 (int)
+stride: 步长 (int)
+group_min_len: 分组最小长度 (int)
+group_max_len: 分组最大长度 (int)
+gate_proj: 指向门控投影权重的内存地址 (在 Python 中通常表示为整数 intptr_t)
+up_proj: 指向上投影权重的内存地址 (Python 整数)
+down_proj: 指向下降投影权重的内存地址 (Python 整数)
+gate_type: 门控投影的数据类型 (表示 ggml_type 的 Python 整数)
+up_type: 上投影的数据类型 (Python 整数)
+down_type: 下降投影的数据类型 (Python 整数)
+hidden_type: 隐藏层的数据类型 (Python 整数)
+```
+
+MOE 类构造函数就接受一个 MOEConfig 作为参数，然后向外暴露了 warm_up 和 forward 两个函数。
+
+----
+
+- 构造函数
+
+MOE 的构造函数中就是在做无聊的填充数据、计算内存使用。这里面将每个类内变量需要的空间做了计算并求和，类内变量里 s 开头的比如 s_up_output_、s_mem_requests 这些都是 forward_one 中对一个 token 进行前向存储的变量。m 开头的比如 m_gate_input_、m_mem_requests 是批量 tokens 前向时使用的。
+
+s_mem_requests、m_mem_requests 对这两个 vector 里记录了单个和批量前向时需要的总缓冲区的大小，以及每个缓冲区各自需要的大小以及指针。这俩计算完后会调用 shared_mem_buffer 函数来具体申请空间，并且把申请出来的总空间分配个各个缓冲区。比较值得注意的是因为同一时刻最多只需要计算单个、批量中的其中前向类型，所以这个内存是共享的，先来后到直接覆盖使用，大幅节省了内存。
+
+- 预热 warm_up
+
+对一些没用的东西做了单 token 前向，让一些内存在计算前能提前加载进缓存里。
+
+- 三种前向
+
+总体来说似乎没什么特别的，都是在做数据填充、矩阵计算这些东西，具体的写法是把执行的代码写进 lambda 里塞进 Backend 里并发计算。
+
+**比较意外的是这里面没有设计到路由选择的内容**，所以再仔细会看一下 python 端的代码可以发现，准确地说：KExpertsCPU 做的内容，也就是 C++ 端 MOE 的部分，其实是在路由层计算完成已经筛选出要用的专家层以后做的具体计算部分。
+
+而路由选择的部分在 KExpertCPU 的上一层 KTransformersExperts 的再上一层 KQwen2MoeSparseMoeBlock 中完成的，YAML 里的替换规则是：
+
+```yaml
+- match:
+    name: "^model\\.layers\\..*\\.mlp$"
+    class: ktransformers.models.modeling_qwen2_moe.Qwen2MoeSparseMoeBlock
+  replace:
+    class: ktransformers.operators.experts.KQwen2MoeSparseMoeBlock     # mlp module with custom forward function
+    kwargs:
+      generate_device: "cuda"
+      prefill_device: "cuda"
+```
+
+这部分放进 cuda 里看起来很合理。
+
+这个类具体内容就不分析了，总而言之这一层计算出路由门控张量以后会喂给 KExpertsCPU 里，也就是 forward 函数的 expert_ids 参数张量。具体打印一下这个张量可以看到内容大概是类似于这样子的 $20\times 8$ 的矩阵：
+
+```
+expert_ids.size() = torch.Size([20, 8])
+>>> expert_ids: tensor([[58, 57, 62, 63, 26, 23,  2, 16],
+        [35, 60, 45, 63, 54, 49, 55, 56],
+        [52, 45, 63, 62, 56, 23, 50,  1],
+        [18, 45, 35, 59,  4, 63, 49, 37],
+        [45, 35, 63, 40, 58, 50, 55, 56],
+        [45, 19, 18, 63, 62,  4, 23, 40],
+        [35, 62, 58, 50, 56, 63, 49, 23],
+        [35,  4, 45, 62, 63, 50, 51, 56],
+        [53, 61, 52, 59, 63, 62, 23, 15],
+        [52, 61, 59, 18, 63, 62, 23, 49],
+        [52, 61, 53, 49, 50, 48, 58, 63],
+        [35, 18, 60, 59, 58, 55, 48, 24],
+        [35, 45,  4, 63, 40, 29, 16, 27],
+        [61, 52, 53, 19, 63, 49, 62,  6],
+        [60, 35, 50, 41, 47, 55, 42, 56],
+        [52, 59, 18, 35, 11, 61, 53,  4],
+        [53, 61, 52, 11, 45, 63, 62, 26],
+        [35,  4, 45, 18, 59, 63, 58, 47],
+        [35,  4, 45, 52, 63, 62,  5,  3],
+        [53, 61, 52, 63, 48,  0,  1,  3]])
+```
+
+注意到值域不超过 64，拷打 GPT 后可以得知（网上似乎没找到相关信息），Qwen2-57B-A14B-Instruct 专家部分的结构是：
+
+- 8 个共享专家（Shared Experts），它们始终被激活，用于捕获跨场景的通用知识；
+
+- 8 个路由专用专家（Routed Experts），由路由网络从 64 个候选专家中根据概率选出，用于捕获细粒度、上下文相关的信息。
+
+上面矩阵信息大概就是：批量处理 20 个 tokens，每个 token 激活 8 个专家，编号分别是里面的值
+
+回看 MOE::forward 这个函数，在参数中 ``int qlen, int k, const uint64_t* expert_ids`` 这三项就是专家层选择的参数，qlen 是批量计算的 tokens 个数，k 是激活的专家数（也就是8），后面的数组就是每个 token 的专家选择。

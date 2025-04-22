@@ -15,11 +15,11 @@ export default function LeftSideBar() {
           alt={name}
         />
         <h2 className={styles.profileName}>{name}</h2>
-        <p className={styles.profileBio}>
+        <div className={styles.profileBio}>
           {profileData.bio1}
           <hr style={{ width: '50%', margin: '10px auto' }} />
           {profileData.bio2}
-        </p>
+        </div>
       </div>
       
       <nav className={styles.sidebarNav}>
