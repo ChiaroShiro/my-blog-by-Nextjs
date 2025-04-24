@@ -592,3 +592,51 @@ expert_ids.size() = torch.Size([20, 8])
 上面矩阵信息大概就是：批量处理 20 个 tokens，每个 token 激活 8 个专家，编号分别是里面的值
 
 回看 MOE::forward 这个函数，在参数中 ``int qlen, int k, const uint64_t* expert_ids`` 这三项就是专家层选择的参数，qlen 是批量计算的 tokens 个数，k 是激活的专家数（也就是8），后面的数组就是每个 token 的专家选择。
+
+## 修改日志
+
+ktransoformers_ext 中加一个 debug 目录，里面放了个 debug.h 和 debug.cpp，封装 debug_printf 像 printf 那样直接往日志文件里输出
+
+util/debug_utils.py 也加了个 debug 调试输出的东西
+
+记得需要改 CMake 文件，要不然编译完也运行不了
+
+用这个 debug 可以发现这个 Qwen2 会用 SharedMemBuffer::alloc 开 4G 的内存用来临时存储
+
+```
+UPDATE BUFFER SIZE: 0 -> 420656
+UPDATE BUFFER SIZE: 420656 -> 497729536
+```
+
+为了方便，我们直接禁用 forward_many 函数，全部用 forward_one 来前向，实测可以发现速度只有原来的一半
+
+先梳理下我们要怎么做，简单来说就三步：
+
+- 先找到 MoE 部分的张量存放的具体外存地址
+
+- 写一个自动管理内存的后台，支持动态加载一个专家以及卸载所有专家（后面或许可以优化这个形式）
+
+- 把原本的直接内存找偏移变成直接从后台获取指针
+
+第一步先找到专家张量的外存地址，custom_gguf.py 里处理这一部分
+
+具体来说 \_\_init\_\_ 遍历文件，load 加载文件 ``file_data_map`` 以文件名为索引存放内存映射
+
+```python
+self.file_data_map[file_name] = np.memmap(file_name, mode = 'r')
+```
+
+``tensor_file_map`` 存放每一个张量所在的文件名
+
+```python
+for name in tensor_info:
+    self.tensor_file_map[name] = f.name
+```
+
+``self.tensor_info[name]["offset"] = offset`` 存储了以 name 为名的张量在文件中的偏移
+
+在 python 端 custom_gguf.py 中新增 get_tensor_file 函数获取张量所在的文件，get_tensor_offset 获取这个张量在这个文件里的偏移
+
+MOEConfig 中添加了文件名和偏移量六个变量，同时加了个开关 use_external_proj，其为 0 表示用之前的正常内存访问。
+
+MOEConfig 添加了一个新的构造函数并用 pybind 绑定到了 python 库中
