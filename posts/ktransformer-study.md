@@ -640,3 +640,109 @@ for name in tensor_info:
 MOEConfig 中添加了文件名和偏移量六个变量，同时加了个开关 use_external_proj，其为 0 表示用之前的正常内存访问。
 
 MOEConfig 添加了一个新的构造函数并用 pybind 绑定到了 python 库中
+
+---
+
+实现一个 memback，构造时获取 GGUF 的文件地址和 MoE 张量偏移，还有其他 Config 信息，开一个全部专家个数大小的 vector，记录每个专家有没有被加载，被加载的话 gate、up 和 down 的内存指针在哪儿
+
+- load 
+
+参数是专家 ID，表示加载第几个专家。然后通过构造的时候获取的 config 获得 GGUF 文件里的偏移量、这个张量的长度。然后 fread 进 malloc 出来的内存里
+
+- unload
+
+参数是专家 ID，表示卸载第几个专家。然后直接 free 掉三个矩阵
+
+- getGate / getUp / getDown
+
+直接通过 vector 获取张量
+
+前向时只使用 forward_one 函数，每次前向一次时直接将需要的 8 个专家全部加载进内存，然后按照正常操作计算，结束以后卸载掉。
+
+此外一些小问题：
+
+moe.h 和 memback.h 有循环引用问题，于是把 MOEConfig 类单独拉出来形成一个文件了
+
+warm_up 没有意义了，直接强制设成 False 就行
+
+并行的时候怕同一时刻若干线程打开同一个文件有问题，所以给 ExpertMemoryManager 上了锁
+
+原来的正常内存映射读取方法也保留着，只要 use_external_proj 是 0 就用原版操作
+
+怕内存泄漏直接上智能指针了
+
+---
+
+### 原版
+
+加载完且完成一次 Chat 以后 
+smem 查看：
+
+```
+PID     User        Swap    USS     PSS     RSS
+3011662 chiarolrg   0       34.9G   34.9G   34.9G
+```
+
+htop 查看：
+
+```
+VIRT    RES     SHR 
+51.2G   35.7G   33.5G
+```
+
+速度查看（启动 warm_up）：
+
+```
+prompt eval count:    21 token(s)
+prompt eval duration: 1.2464280128479004s
+prompt eval rate:     16.848145086227774 tokens/s
+eval count:           38 token(s)
+eval duration:        4.596850872039795s
+eval rate:            8.266528773237749 tokens/s
+
+prompt eval count:    25 token(s)
+prompt eval duration: 1.1397297382354736s
+prompt eval rate:     21.9350247355175 tokens/s
+eval count:           130 token(s)
+eval duration:        13.794088125228882s
+eval rate:            9.424327205959687 tokens/s
+```
+
+### 修改后
+
+加载完且完成一次 Chat 以后 
+smem 查看：
+
+```
+PID     User        Swap    USS     PSS     RSS
+3015239 chiarolrg   0       7.1G    7.1G    7.1G
+```
+
+htop 查看：
+
+```
+VIRT    RES     SHR 
+51.2G   7319M   5120M
+```
+
+速度查看：
+
+```
+prompt eval count:    21 token(s)
+prompt eval duration: 102.50285506248474s
+prompt eval rate:     0.2048723422113326 tokens/s
+eval count:           38 token(s)
+eval duration:        149.8651683330536s
+eval rate:            0.2535612539102516 tokens/s
+
+prompt eval count:    25 token(s)
+prompt eval duration: 55.47953772544861s
+prompt eval rate:     0.4506165881142956 tokens/s
+eval count:           102 token(s)
+eval duration:        222.42098140716553s
+eval rate:            0.45858982976645546 tokens/s
+```
+
+可以看到内存显著减少（从 $35G \rightarrow 7G$）
+
+但是也可以注意到时间显著变慢。运行时可以观察到 12 个 CPU 没有都跑满，原版 KTransformers 推理的时候所有 CPU 都会跑满。在内外存加载卸载的时候通过锁保证同一时刻只能运行一个 load 或者 unload，这里应该可以优化一下。
