@@ -708,7 +708,9 @@ eval duration:        13.794088125228882s
 eval rate:            9.424327205959687 tokens/s
 ```
 
-### 修改后
+### 成功新增换入换出功能
+
+新增了专家换入和换出的功能，每次 MoE 计算都是通过专家换入换出计算。
 
 加载完且完成一次 Chat 以后 
 smem 查看：
@@ -746,3 +748,140 @@ eval rate:            0.45858982976645546 tokens/s
 可以看到内存显著减少（从 $35G \rightarrow 7G$）
 
 但是也可以注意到时间显著变慢。运行时可以观察到 12 个 CPU 没有都跑满，原版 KTransformers 推理的时候所有 CPU 都会跑满。在内外存加载卸载的时候通过锁保证同一时刻只能运行一个 load 或者 unload，这里应该可以优化一下。
+
+#### 自行实现一个简单并行化换入换出
+
+将换入换出并行化，将 memback.cpp 部分的锁从整个类共用一个锁（同一时刻只能对一个专家进行操作）变成一个专家拥有一个锁（一个专家同时只能进行一个操作，但是好几个专家可以同时被操作）
+
+然后在 moe.cpp 中加载时通过并行化进行
+
+内存消耗几乎无变化，速度测试如下：
+
+```
+prompt eval count:    21 token(s)
+prompt eval duration: 14.583811521530151s
+prompt eval rate:     1.439952783879413 tokens/s
+eval count:           38 token(s)
+eval duration:        24.19987654685974s
+eval rate:            1.5702559443399726 tokens/s
+
+prompt eval count:    25 token(s)
+prompt eval duration: 18.40476679801941s
+prompt eval rate:     1.3583437527005409 tokens/s
+eval count:           156 token(s)
+eval duration:        99.38679265975952s
+eval rate:            1.5696250560580014 tokens/s
+
+prompt eval count:    26 token(s)
+prompt eval duration: 20.905439376831055s
+prompt eval rate:     1.2436954579780377 tokens/s
+eval count:           1000 token(s)
+eval duration:        769.2412621974945s
+eval rate:            1.2999822671281258 tokens/s
+```
+
+速度大概提升了三倍
+
+但是在某次运行中，在正常回答了两次问题或突然开始以如下的方式输出tokens了，具体来说就是一个字一个字地往外蹦，而且每两个字间还都要输出一个空格 token，不知道我是模型的问题还是我代码的问题：
+
+```
+real content:  阿里巴巴集团是一家中国 multinational consumer conglomerate 集团，其业务涵盖了电商、金融、物流、云计算等多个领域。阿里巴巴集团的旗舰平台是全球最大的B2B电商平台阿里巴巴，以及全球最大的零售平台淘宝网和中国领先的电商平台天猫。 阿里巴巴 集团还在数字娱乐、智能物流、人工智能等方面进行了布局和探索。
+
+阿里巴巴集团的 成功 可 以 归 因 于 多 个 因 素 。 以下 是 其 中 一些 关 �键 因 素 ：
+
+1. **  平 台 优 势  **  阿 里 巴 巴 集 团 的 旗 舰 平 台 阿 里 巴 巴 、 淘 宝 网 和 天 猫 均 为 世 界 上 最 大 的 电 商 平 台 之 一 ， 这 为 阿 里 巴 巴 �集团 的 业 务 发 展 和 吸 引 新 客 户 提 供 了 强 大 的 支 持 。  这 些 平 台 不 仅 为 用 户 提 供 了 丰 富 多 样 的 产 品 和 服 务 ， 而 且 还 通 过 互 联 网 技 术 实 现 了 跨 地 区 、 跨 时 间 的 交 易 ， 极 大 地 方 便 了 用 户 的 购 物 需 求 。
+```
+
+不过又提问几次之后又正常了，莫名其妙的
+
+这个速度感觉还是不行啊，想了几个或许可以加速的办法：
+
+- 在 backend 里封装 memback 的调用，然后加载卸载的 thread 共用 backend 里的 thread，减少 thread 构造和析构的时间
+
+- 用 LRU 队列之类的方法减少重复的专家加载卸载
+
+- 在构造专家加载卸载器的时候提前开好若干块内存区（比如这里是8块），然后每次只需要往里面 fread 就行，省去 molloc 和 free 的时间
+
+- 在磁盘读写上是否会有点优化空间？比如多加点线程同时 fread 一块张量，或者限制同时 fread 的个数给磁盘减压？感觉或许有研究空间？
+
+#### 改成 Backend 中的并行化方法
+
+Backend 中有一个可行的并行化方法库，所以考虑把之前手写的多线程并行加载卸载改成调这个库来做。这样避免了线程构造析构的开销、而且那个库实现的确实也高效，同时还能让代码封装性好点。
+
+修改后内存使用无变化
+
+速度上又有比较大的进步：
+
+```
+prompt eval count:    21 token(s)
+prompt eval duration: 6.979388236999512s
+prompt eval rate:     3.008859700435299 tokens/s
+eval count:           73 token(s)
+eval duration:        24.590646266937256s
+eval rate:            2.9686084378412754 tokens/s
+
+prompt eval count:    23 token(s)
+prompt eval duration: 6.883808135986328s
+prompt eval rate:     3.3411738888774978 tokens/s
+eval count:           55 token(s)
+eval duration:        16.959415435791016s
+eval rate:            3.2430363067779115 tokens/s
+
+prompt eval count:    22 token(s)
+prompt eval duration: 6.661703586578369s
+prompt eval rate:     3.302458554944471 tokens/s
+eval count:           75 token(s)
+eval duration:        24.63934063911438s
+eval rate:            3.043912623251746 tokens/s
+```
+
+#### 预先开好内存池
+
+之前都是每次加载的时候 malloc 出来一块空间，free 的时候释放掉若干块空间，显然这里是有一点优化空间的。
+
+所以改成每次构造的时候 malloc 出来 8（根据 MoE 层的 Config 定的）块大内存，然后每次 load 的时候选一块没有用到的内存直接往里面 fread 即可，unload 就也不用 free 了。
+
+为了能线程安全所以用了原子操作。
+
+但是修改完之后跑发现代码预加载完还没开始 Chat 的时候还是之前的 6.8 G内存使用，但是开始聊天以后内存就变得比之前大了：
+
+smem 查看：
+
+```
+PID     User        Swap    USS     PSS     RSS
+3015239 chiarolrg   0       10.5G   10.5G   10.5G
+```
+
+htop 查看：
+
+```
+VIRT    RES     SHR 
+54.8G   10.7G   5122M
+```
+
+速度有提升，但是不大：
+
+```
+prompt eval count:    22 token(s)
+prompt eval duration: 7.122477054595947s
+prompt eval rate:     3.0888130395315176 tokens/s
+eval count:           18 token(s)
+eval duration:        5.590892791748047s
+eval rate:            3.219521580983871 tokens/s
+
+prompt eval count:    23 token(s)
+prompt eval duration: 6.6142754554748535s
+prompt eval rate:     3.4773272076176 tokens/s
+eval count:           92 token(s)
+eval duration:        27.7470805644989s
+eval rate:            3.3156641393729083 tokens/s
+
+prompt eval count:    22 token(s)
+prompt eval duration: 6.401623249053955s
+prompt eval rate:     3.436628358791843 tokens/s
+eval count:           65 token(s)
+eval duration:        19.532647371292114s
+eval rate:            3.327761913908967 tokens/s
+```
+
+这个内存的增加很奇怪，但是仔细研究一下可以发现，这个模型的 MoE 部分好像总共是 29,864,755,200 字节，也就是 27.8G，如果从之前原版大概要用 35G 内存反推的话，其他部分大概是占用 7G 内存（虽然从加载的张量看好像只用到 4.6G，总张量 32.45G），而如果只加载八分之一的 MoE 张量的话，就是 3.5G，那现在这个新版本使用 $3.5G+7G=10.5G$ 似乎才是合理的，上一个 watch smem 只用了 7.2G 的才是不合理的，或许是因为 watch 的取样间隔太大，malloc free 太快所以检测不到？
