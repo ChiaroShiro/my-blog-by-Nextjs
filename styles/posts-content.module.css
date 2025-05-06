@@ -89,3 +89,9 @@
     padding-left: 0;
     position: static;
   }
+
+.post-with-toc {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+}

@@ -1,0 +1,161 @@
+.tocContainer {
+  flex: 0 0 250px;
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.tocTitle {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.tocList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tocItem {
+  margin: 0.4rem 0;
+  /* 托盘线和点的伪元素迁移到 tocItemHeader */
+}
+
+.tocItemHeader {
+  display: flex;
+  align-items: center;
+  position: relative; /* 用于定位伪元素 */
+  padding-bottom: 0.4rem; /* 为托盘线预留空间 */
+}
+
+.tocLink {
+  text-decoration: none;
+  color: #555555;
+  font-size: 0.9rem;
+  display: block;
+  padding: 4px 8px;
+  transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tocLink:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 小圆点 */
+.tocItemHeader::before {
+  content: '';
+  position: absolute;
+  left: -12px; /* 向左移动，避免与展开箭头重叠 */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  background-color: #888;
+  border-radius: 50%;
+  transition: background-color 0.2s, width 0.2s, height 0.2s;
+}
+
+/* 托盘线 */
+.tocItemHeader::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -12px; /* 向左移动，和圆点对齐 */
+  right: 0;
+  height: 1px;
+  background-color: #e0e0e0;
+}
+
+.depth1 .tocLink {
+  font-weight: bold;
+  color: #222222;
+}
+
+.depth2 .tocLink {
+  font-weight: 500;
+  color: #333333;
+}
+
+.depth3 .tocLink {
+  font-weight: normal;
+  color: #444444;
+}
+
+.depth4 .tocLink {
+  font-size: 0.85rem;
+  color: #555555;
+}
+
+.depth5 .tocLink {
+  font-size: 0.8rem;
+  color: #666666;
+}
+
+.depth6 .tocLink {
+  font-size: 0.75rem;
+  color: #777777;
+}
+
+
+
+/* 文本缩进，使文字、点和托盘线水平对齐 */
+.tocItem.depth1 {
+  padding-left: 8px;
+}
+.tocItem.depth2 {
+  padding-left: 16px;
+}
+.tocItem.depth3 {
+  padding-left: 24px;
+}
+.tocItem.depth4 {
+  padding-left: 32px;
+}
+.tocItem.depth5 {
+  padding-left: 40px;
+}
+.tocItem.depth6 {
+  padding-left: 48px;
+}
+
+.toggleIcon {
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+  margin-left: 4px;
+  margin-right: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+/* 折叠/展开子列表动画 */
+.tocSubList {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  padding-left: 0; /* 使用 li 缩进 */
+  margin: 0;
+}
+.tocSubListOpen {
+  max-height: 1000px; /* 足够展开 */
+}
+
+/* 默认箭头指向右侧 */
+.toggleIcon {
+  transform: rotate(0deg);
+  transform-origin: center;
+  transition: transform 0.3s ease;
+}
+/* 展开时箭头向下 */
+.openIcon {
+  transform: rotate(90deg);
+} 

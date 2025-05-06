@@ -26,7 +26,8 @@
     "remark-highlight.js": "^7.0.1",
     "remark-html": "^16.0.1",
     "remark-math": "^6.0.0",
-    "remark-rehype": "^11.1.1"
+    "remark-rehype": "^11.1.1",
+    "remark-slug": "^7.0.1"
   },
   "engines": {
     "node": ">=18"
