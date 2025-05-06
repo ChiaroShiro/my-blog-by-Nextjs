@@ -952,3 +952,163 @@ eval rate:            9.115173304575666 tokens/s
 开到 64 除了一开始以外就没有外存读写这一说了，可以看到除了第一次对话缺少 warm_up 所以比较慢，后面已经能达到原始模型 forward_one 的速度了，内存使用上也和原始模型没区别
 
 毕竟路由层给每个专家分配的概率比较平均，很显然这个 LRU 的长度和速度提升不是线性关系，其实这么想的话感觉这个 LRU 优化相当没必要，毕竟这个 LRU 长度最大基本也就是 16 左右了，再大内存就相当吃不消了，但是速度只有零点几的提升，内存多了好几个 G，纯纯负优化啊
+
+---
+
+### 接下来的任务是实现一个读写外存/计算的类似流水线的工作
+
+之前研究的代码都是单个 MoE，且都取好 top-k 个专家的情况下的代码，下面先来看看整个模型的结构吧。当然是只关注 MoE 的部分
+
+首先显示 Qwen2 的原始代码（ktransformers.models.modeling_qwen2_moe.py）中，看起来这个文件是 KT 团队在 Qwen 团队原代码上改出来的
+
+在一开始的时候（也就是 local_chat.py 中）调用 Qwen2MoeForCausalLM 模块完成初始化
+
+```python
+custom_models = {
+    "DeepseekV2ForCausalLM": DeepseekV2ForCausalLM,
+    "DeepseekV3ForCausalLM": DeepseekV3ForCausalLM,
+    "Qwen2MoeForCausalLM": Qwen2MoeForCausalLM,
+    "LlamaForCausalLM": LlamaForCausalLM,
+    "MixtralForCausalLM": MixtralForCausalLM,
+}
+
+...
+
+model = custom_models[config.architectures[0]](config)
+```
+
+---
+
+在 Qwen2MoeForCausalLM 这个模块中会执行
+
+```python
+self.model = Qwen2MoeModel(config)
+```
+
+从而初始化出来 MoE 模型部分
+
+---
+
+在 Qwen2MoeModel 中可以看到 
+
+```python
+self.layers = nn.ModuleList(
+    [Qwen2MoeDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
+)
+```
+
+根据调试可以得到 num_hidden_layers 就是 MoE 的总层数 28，Qwen2MoeDecoderLayer 就是生成每一层 MoE 部分的模块
+
+---
+
+在 Qwen2MoeDecoderLayer 中可以看到他根绝条件生成了 Sparse MoE 和 Dense MoE
+
+```python
+if (layer_idx not in config.mlp_only_layers) and (
+    config.num_experts > 0 and (layer_idx + 1) % config.decoder_sparse_step == 0
+):
+    self.mlp = Qwen2MoeSparseMoeBlock(config)
+else:
+    self.mlp = Qwen2MoeMLP(config, intermediate_size=config.intermediate_size)
+```
+
+调试实测 decoder_sparse_step 为 1，这一步生成的所有 MoE 都是 Sparse MoE
+
+---
+
+在 Qwen2MoeSparseMoeBlock 中可以看到有
+
+```python
+self.experts = nn.ModuleList(
+    [Qwen2MoeMLP(config, intermediate_size=config.moe_intermediate_size) for _ in range(self.num_experts)]
+)
+```
+
+这里面的 num_experts 调试得到就是 64，也就是 Experts 的个数
+
+---
+
+至于 Qwen2MoeMLP 模块就很简单了，这次直接贴出完整代码
+
+```python
+class Qwen2MoeMLP(nn.Module):
+    def __init__(self, config, intermediate_size=None):
+        super().__init__()
+        self.config = config
+        self.hidden_size = config.hidden_size
+        self.intermediate_size = intermediate_size
+        self.gate_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.up_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
+        self.act_fn = ACT2FN[config.hidden_act]
+
+    def forward(self, x):
+        return self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+```
+
+可以看到大概就是一个最简单的 MLP 层，没有什么多余的东西
+
+---
+
+至此我们整理一下这个 Qwen2 原始模型的大体结构
+
+```
+Qwen2MoeForCausalLM .    model   <=  Qwen2MoeModel
+Qwen2MoeModel .          layers  <=  Qwen2MoeDecoderLayer * 28
+Qwen2MoeDecoderLayer .   mlp     <=  Qwen2MoeSparseMoeBlock
+Qwen2MoeSparseMoeBlock . experts <=  Qwen2MoeMLP * 64
+Qwen2MoeMLP                      <=  Trivial MLP
+```
+
+现在我们回来看看我们针对 Qwen2 的 YAML 配置，主要是下面这几句比较关键：
+
+```yaml
+- match:
+    name: "^model\\.layers\\..*\\.mlp$"
+    class: ktransformers.models.modeling_qwen2_moe.Qwen2MoeSparseMoeBlock
+  replace:
+    class: ktransformers.operators.experts.KQwen2MoeSparseMoeBlock     # mlp module with custom forward function
+    kwargs:
+      generate_device: "cuda"
+      prefill_device: "cuda"
+- match:
+    name: "^model\\.layers\\..*\\.mlp\\.experts$"
+  replace:
+    class: ktransformers.operators.experts.KTransformersExperts     # custom MoE Kernel with expert paralleism
+    # device: "cpu"   # which devices to load this module when initializing
+    kwargs:
+      prefill_device: "cuda"
+      prefill_op: "KExpertsTorch"
+      generate_device: "cpu"
+      generate_op:  "KExpertsCPU"
+      out_device: "cuda"
+  recursive: False # don't recursively inject submodules of this module
+- match:
+    name: "^model$"
+  replace:
+    class: "ktransformers.operators.models.KQwen2MoeModel"
+    kwargs:
+      per_layer_prefill_intput_threshold: 0 # 0 is close layer wise prefill
+```
+
+感觉直到现在才能比较清晰地解读出来这个 YAML 的意思了：
+
+最顶层的 ``Qwen2MoeForCausalLM.model`` 也就是 ``Qwen2MoeModel`` 换成了 ``KQwen2MoeModel`` 模块
+
+``Qwen2MoeForCausalLM.model.layers.mlp`` 也就是 ``Qwen2MoeSparseMoeBlock`` 换成了 ``KQwen2MoeSparseMoeBlock``
+
+``Qwen2MoeForCausalLM.model.layers.mlp.experts`` 也就是 64 个 ``Qwen2MoeMLP`` 换成了 ``KTransformersExperts``
+
+所以新的 KT 架构 Qwen2 模型是
+
+```
+Qwen2MoeForCausalLM .     model   <=  KQwen2MoeModel
+KQwen2MoeModel .          layers  <=  Qwen2MoeDecoderLayer * 28
+Qwen2MoeDecoderLayer .    mlp     <=  KQwen2MoeSparseMoeBlock
+KQwen2MoeSparseMoeBlock . experts <=  KTransformersExperts
+KTransformersExperts              <=  KExpertsCPU + C++ Part
+```
+
+其中 KQwen2MoeSparseMoeBlock 部分做了路由、MoE和共享专家这些工作，KTransformersExperts 在获取了 top-k 之后只专注于高效的 CPU 并行计算
+
+这么看的话在 KQwen2MoeModel 中实例化每一层的时候就得把层信息带进去，然后再想办法做流水线化的内存加载
