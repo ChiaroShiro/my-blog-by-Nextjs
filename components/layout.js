@@ -12,7 +12,7 @@ export const siteTitle = 'Chiaro\'s Blog'
 // 配置 NProgress
 NProgress.configure({ showSpinner: true })
 
-export default function Layout({ children }) {
+export default function Layout({ children, postData }) {
   const { allPostsData, lastUpdateTime } = useContext(PostsContext)
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function Layout({ children }) {
           {children}
         </div>
       </main>
-      <RightSideBar allPostsData={allPostsData} lastUpdateTime={lastUpdateTime} />
+      <RightSideBar allPostsData={allPostsData} lastUpdateTime={lastUpdateTime} postData={postData} />
     </div>
   )
 }

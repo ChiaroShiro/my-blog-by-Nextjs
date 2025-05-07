@@ -1,10 +1,9 @@
 .tocContainer {
-  flex: 0 0 250px;
-  position: sticky;
-  top: 80px;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
   padding: 0.5rem 0;
+  overflow: visible;
 }
 
 .tocTitle {

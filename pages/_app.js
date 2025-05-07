@@ -8,7 +8,7 @@ import { PostsProvider } from '../context/PostsContext'
 export default function MyApp({ Component, pageProps }) {
   return (
     <PostsProvider value={pageProps.postsContextValue}>
-      <Layout>
+      <Layout postData={pageProps.postData}>
         <Component {...pageProps} />
       </Layout>
     </PostsProvider>

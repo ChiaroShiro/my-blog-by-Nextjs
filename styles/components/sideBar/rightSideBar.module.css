@@ -65,7 +65,7 @@
   padding: 1.5rem;
   background-color: #f8f9fa;
   border-left: 1px solid #e9ecef;
-  overflow-y: auto;
+  overflow-y: visible; /* 取消内部滚动，使用页面主滚动 */
   z-index: 100;
   height: 100vh;
 }
@@ -156,4 +156,48 @@
   width: 100%;
   max-width: 100%;
   transition: all 0.3s ease;
+}
+
+/* 隐藏元素 */
+.hidden {
+  display: none;
+}
+
+/* 动画容器 */
+.slideDefault,
+.slideTOC {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  padding: 1.5rem; /* 与侧边栏内边距一致 */
+  overflow: visible; /* 取消内部滚动，使用aside自身滚动 */
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* 水平左对齐 */
+}
+
+/* 默认内容动画 */
+.slideDefault {
+  transform: translateY(0);
+  opacity: 1;
+  z-index: 0;
+}
+.hiddenDefault {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* TOC 动画 */
+.slideTOC {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+.visibleTOC {
+  transform: translateY(0);
+  opacity: 1;
 }
