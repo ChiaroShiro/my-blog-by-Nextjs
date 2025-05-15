@@ -19,8 +19,6 @@ export default function BlogCard({ id, coverUrl, date, title, shortContent, tags
 
     processContent()
   }, [shortContent])
-
-  console.log(`渲染文章 ${id}，封面URL: ${coverUrl}`)
   
   return (
     <Link href={`/posts/${id}`}>

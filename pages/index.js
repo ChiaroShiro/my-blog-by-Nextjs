@@ -4,7 +4,6 @@ import { getPostsContext } from '../lib/postsContext'
 import { withPostsContext } from '../lib/withPostsContext'
 
 export default function Home({ postsContextValue }) {
-  console.log('所有文章数据:', postsContextValue.allPostsData)
   return (
     <section className={styles.blogGrid}>
       {postsContextValue.allPostsData.map(({ id, date, title, coverUrl, shortContent, tags, pinned }, index) => (

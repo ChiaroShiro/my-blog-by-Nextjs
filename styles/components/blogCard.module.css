@@ -21,6 +21,7 @@
 
 .blogCard:hover .blogImage {
   transform: scale(1.05);
+  filter: blur(2px);
 }
 
 .blogCardNoImage:hover {
@@ -155,7 +156,8 @@
   height: 100%;
   object-fit: cover;
   object-position: center; /* 始终居中显示 */
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  filter: blur(0);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.3s ease;
 }
 
 .blogContent {

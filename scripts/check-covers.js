@@ -17,10 +17,4 @@ postIds.forEach(id => {
   const hasCover = extensions.some(ext => 
     fs.existsSync(path.join(assetsDir, `${id}${ext}`))
   )
-  
-  if (!hasCover) {
-    console.error(`❌ 文章 "${id}" 缺少封面图片`)
-  } else {
-    console.log(`✅ 文章 "${id}" 封面存在`)
-  }
 }) 
