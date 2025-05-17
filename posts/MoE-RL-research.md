@@ -52,3 +52,18 @@ P6 的 3.2 里提到了一个双路 MoE 路由的方法，简要来说就是根�
 
 论文里说通过MoE和UT混合的方式实现了降低内存的效果，但是似乎没有找到内存的管理方式，也不知道是为什么能降低内存的，很奇怪，不太懂
 
+## ADA-K ROUTING: BOOSTING THE EFFICIENCY OF MOE-BASED LLMS
+
+> ICLR 2025
+
+提出了 Ada-K 路由方法，与传统 MoE 固定选 k 个不同，这个论文里的新方法要根据 token 选择 k 的大小，复杂的 token 要激活更多的专家，信息少的 token 要少激活点专家。这玩意儿好像很适合用强化学习搞，论文里也是用的 PPO 的强化学习方法进行的。
+
+具体来说就是在传统 MoE 的 Gate 前加一层强化学习层，输出 k 大小的概率分布
+
+## SMOSE: Sparse Mixture of Shallow Experts for Interpretable Reinforcement Learning in Continuous Control Tasks
+
+> AAAI 2025
+
+机器人操作等连续控制领域强化学习应用比较广泛，但是强化学习的结果是不可解释的，这个论文就是研究怎么让他可解释，用的方法是 MoE。
+
+具体来说就是用强化学习训练整个 MoE 架构，包括专家和门控，其中门控是可解释的，这样在跑的时候就可以根据每次门控选择的结果建立决策树之类的东西来解释整个过程。
