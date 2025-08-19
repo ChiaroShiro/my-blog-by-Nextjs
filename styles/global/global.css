@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'LXGW WenKai GB';
-  src: url('/fonts/LXGWWenKaiGB-Light.ttf') format('truetype');
+  src: url('/fonts/LXGWWenKaiGB-Light.subset.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -8,7 +8,7 @@
 
 @font-face {
   font-family: 'LXGW WenKai GB';
-  src: url('/fonts/LXGWWenKaiGB-Regular.ttf') format('truetype');
+  src: url('/fonts/LXGWWenKaiGB-Regular.subset.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: 'LXGW WenKai GB';
-  src: url('/fonts/LXGWWenKaiGB-Medium.ttf') format('truetype');
+  src: url('/fonts/LXGWWenKaiGB-Medium.subset.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
